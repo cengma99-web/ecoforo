@@ -84,7 +84,9 @@ class EconomicEvent(Base):
     raw_data = Column(JSON)
     dedup_key = Column(String(64), unique=True, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc))
-    updated_at = Column(DateTime(timezone=True), onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime(timezone=True),
+                        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+                        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     source = relationship("EventSource", back_populates="events")
     category = relationship("EventCategory", back_populates="events")
@@ -92,7 +94,6 @@ class EconomicEvent(Base):
 
     __table_args__ = (
         Index("idx_events_date_country_impact", "event_date", "country", "impact"),
-        Index("idx_events_dedup", "dedup_key"),
     )
 
 
@@ -111,8 +112,10 @@ class EconomicIndicator(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     source = relationship("EventSource", back_populates="indicators")
-    values = relationship("IndicatorValue", back_populates="indicator")
-    event_links = relationship("EventIndicatorLink", back_populates="indicator")
+    values = relationship("IndicatorValue", back_populates="indicator",
+                          cascade="all, delete-orphan")
+    event_links = relationship("EventIndicatorLink", back_populates="indicator",
+                               cascade="all, delete-orphan")
 
 
 class IndicatorValue(Base):
