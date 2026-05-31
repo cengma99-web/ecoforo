@@ -22,13 +22,13 @@ def _get_fetchers():
     from ecoforo.fetchers.fred import FREDFetcher
     from ecoforo.fetchers.worldbank import WBFetcher
     from ecoforo.fetchers.metals import MetalsFetcher
-    from ecoforo.fetchers.investing import InvestingFetcher
+    from ecoforo.fetchers.gdelt import GDELTFetcher
 
     return [
         FREDFetcher(),
         WBFetcher(),
         MetalsFetcher(),
-        InvestingFetcher(),
+        GDELTFetcher(),
     ]
 
 
