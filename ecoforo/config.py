@@ -9,12 +9,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 
-def _data_dir() -> Path:
-    d = os.getenv("ECOFORO_DATA_DIR", str(PROJECT_ROOT / "data"))
-    Path(d).mkdir(parents=True, exist_ok=True)
-    return Path(d)
-
-
 def _parse_int_env(key: str, default: int) -> int:
     try:
         return int(os.getenv(key, str(default)))
