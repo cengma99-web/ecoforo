@@ -10,9 +10,9 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# Class labels: 0=down, 1=flat, 2=up
-DIRECTION_MAP = {2: "📈 上涨 (UP)", 1: "➡️ 持平 (FLAT)", 0: "📉 下跌 (DOWN)"}
-SIGNAL_MAP = {2: "🟢 买入", 1: "🟡 等待", 0: "🔴 卖出"}
+# Binary class labels: 0=down, 1=up
+DIRECTION_MAP = {1: "📈 上涨 (UP)", 0: "📉 下跌 (DOWN)"}
+SIGNAL_MAP = {1: "🟢 买入", 0: "🔴 卖出"}
 
 
 def predict_latest() -> dict:
@@ -48,8 +48,7 @@ def predict_latest() -> dict:
         "signal": SIGNAL_MAP.get(dir_pred, "❓"),
         "probabilities": {
             "down": float(dir_proba[0]),
-            "flat": float(dir_proba[1]),
-            "up": float(dir_proba[2]),
+            "up": float(dir_proba[1]),
         },
         "predicted_return_pct": round(ret_pred * 100, 2),
         "predicted_price": round(predicted_price, 2) if predicted_price else None,
@@ -85,9 +84,9 @@ def run_backtest() -> dict:
     total = len(results)
     accuracy = correct / total if total > 0 else 0
 
-    # Per-class accuracy (0=down, 1=flat, 2=up)
+    # Per-class accuracy (binary: 0=down, 1=up)
     per_class = {}
-    for label, name in [(0, 'down'), (1, 'flat'), (2, 'up')]:
+    for label, name in [(0, 'down'), (1, 'up')]:
         mask = results['actual_direction'] == label
         if mask.sum() > 0:
             per_class[name] = float((results.loc[mask, 'actual_direction'] == results.loc[mask, 'predicted_direction']).mean())
@@ -101,7 +100,7 @@ def run_backtest() -> dict:
 
     # Confusion matrix
     from sklearn.metrics import confusion_matrix
-    cm = confusion_matrix(y_cls, dir_preds, labels=[0, 1, 2])
+    cm = confusion_matrix(y_cls, dir_preds, labels=[0, 1])
 
     return {
         "total_samples": total,
@@ -129,7 +128,7 @@ def format_prediction(result: dict) -> str:
         lines.append(f"预测价格: ${result['predicted_price']:.2f}/lb")
     lines.append(f"")
     probs = result.get('probabilities', {})
-    lines.append(f"概率分布: 涨 {probs.get('up', 0):.0%}  |  平 {probs.get('flat', 0):.0%}  |  跌 {probs.get('down', 0):.0%}")
+    lines.append(f"概率分布: 涨 {probs.get('up', 0):.0%}  |  跌 {probs.get('down', 0):.0%}")
     lines.append("")
     m = result.get('model_metrics', {}).get('classifier', {})
     lines.append(f"模型 CV 准确率: {m.get('cv_accuracy', 0):.1%}  (基线: {m.get('baseline_accuracy', 0):.1%})")
@@ -149,16 +148,16 @@ def format_backtest(result: dict) -> str:
     lines.append(f"回归 MAE: {result['regression_mae_pct']:.2f}%")
     lines.append("")
     per_class = result.get('per_class_accuracy', {})
-    lines.append(f"分类准确率: 涨 {per_class.get('up', 0):.1%}  |  平 {per_class.get('flat', 0):.1%}  |  跌 {per_class.get('down', 0):.1%}")
+    lines.append(f"分类准确率: 涨 {per_class.get('up', 0):.1%}  |  跌 {per_class.get('down', 0):.1%}")
     lines.append("")
     cm = result.get('confusion_matrix', [])
     if cm:
         lines.append("混淆矩阵 (行=实际, 列=预测):")
-        lines.append(f"        跌   平   涨")
-        labels = ['跌', '平', '涨']
+        lines.append(f"        跌   涨")
+        labels = ['跌', '涨']
         for i, label in enumerate(labels):
             if i < len(cm):
-                lines.append(f"  {label}  {cm[i][0]:>4d} {cm[i][1]:>4d} {cm[i][2]:>4d}")
+                lines.append(f"  {label}  {cm[i][0]:>4d} {cm[i][1]:>4d}")
     lines.append("")
     cv = result.get('cv_metrics', {}).get('classifier', {})
     lines.append(f"CV 准确率: {cv.get('cv_accuracy', 0):.1%} ± {cv.get('cv_accuracy_std', 0):.1%}")

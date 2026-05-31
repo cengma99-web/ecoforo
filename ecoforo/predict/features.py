@@ -15,9 +15,15 @@ logger = logging.getLogger(__name__)
 
 # Feature definitions
 PRICE_FEATURES = [
-    "lag_1", "lag_7", "lag_30",          # Price lags
-    "ma_20", "ma_60",                     # Moving averages
-    "volatility_30", "rsi_14",            # Technical indicators
+    "lag_1", "lag_7", "lag_30", "lag_60", "lag_90",  # Price lags
+    "ma_20", "ma_60", "ma_120",                         # Moving averages
+    "ma_ratio_20_60", "ma_ratio_20_120",               # MA cross signals
+    "price_vs_ma20", "price_vs_ma60",                   # Price position vs MA
+    "volatility_30", "volatility_90",                   # Volatility
+    "rsi_14", "rsi_30",                                 # RSI
+    "macd", "macd_signal", "macd_hist",                 # MACD
+    "bb_position", "bb_width",                          # Bollinger Bands
+    "momentum_7", "momentum_30",                        # Momentum
 ]
 
 MACRO_FEATURES = [
@@ -34,7 +40,7 @@ NEWS_FEATURES = [
 ]
 
 ALL_FEATURES = PRICE_FEATURES + MACRO_FEATURES + COMMODITY_FEATURES + NEWS_FEATURES
-TARGET_CLASS = "direction_30d"       # 1=up, 0=flat, -1=down
+TARGET_CLASS = "direction_30d"       # Binary: 0=down, 1=up
 TARGET_REGRESSION = "return_30d"     # 30-day forward return
 
 
@@ -128,34 +134,67 @@ def build_features(start_date: str = "2018-01-01") -> Tuple[pd.DataFrame, pd.Ser
     df = pd.DataFrame(index=copper.index)
     df['copper_price'] = copper
 
-    # Lag features
+    # ── Lag features ────────────────────────────────────────
     df['lag_1'] = copper.shift(1)
     df['lag_7'] = copper.shift(7)
     df['lag_30'] = copper.shift(30)
+    df['lag_60'] = copper.shift(60)
+    df['lag_90'] = copper.shift(90)
 
-    # Moving averages
+    # ── Moving averages ─────────────────────────────────────
     df['ma_20'] = copper.rolling(20).mean()
     df['ma_60'] = copper.rolling(60).mean()
+    df['ma_120'] = copper.rolling(120).mean()
 
-    # Volatility
-    df['volatility_30'] = copper.pct_change().rolling(30).std()
+    # MA cross signals
+    df['ma_ratio_20_60'] = df['ma_20'] / df['ma_60'] - 1
+    df['ma_ratio_20_120'] = df['ma_20'] / df['ma_120'] - 1
 
-    # RSI(14)
+    # Price position vs MA
+    df['price_vs_ma20'] = copper / df['ma_20'] - 1
+    df['price_vs_ma60'] = copper / df['ma_60'] - 1
+
+    # ── Volatility ──────────────────────────────────────────
+    returns = copper.pct_change()
+    df['volatility_30'] = returns.rolling(30).std()
+    df['volatility_90'] = returns.rolling(90).std()
+
+    # ── RSI ─────────────────────────────────────────────────
     delta = copper.diff()
-    gain = delta.clip(lower=0).rolling(14).mean()
-    loss = (-delta.clip(upper=0)).rolling(14).mean()
-    rs = gain / loss.replace(0, np.nan)
-    df['rsi_14'] = 100 - (100 / (1 + rs))
+    gain = delta.clip(lower=0)
+    loss = (-delta.clip(upper=0))
+
+    avg_gain_14 = gain.rolling(14).mean()
+    avg_loss_14 = loss.rolling(14).mean()
+    rs_14 = avg_gain_14 / avg_loss_14.replace(0, np.nan)
+    df['rsi_14'] = 100 - (100 / (1 + rs_14))
+
+    avg_gain_30 = gain.rolling(30).mean()
+    avg_loss_30 = loss.rolling(30).mean()
+    rs_30 = avg_gain_30 / avg_loss_30.replace(0, np.nan)
+    df['rsi_30'] = 100 - (100 / (1 + rs_30))
+
+    # ── MACD ────────────────────────────────────────────────
+    ema_12 = copper.ewm(span=12, adjust=False).mean()
+    ema_26 = copper.ewm(span=26, adjust=False).mean()
+    df['macd'] = ema_12 - ema_26
+    df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+    df['macd_hist'] = df['macd'] - df['macd_signal']
+
+    # ── Bollinger Bands ─────────────────────────────────────
+    bb_mid = copper.rolling(20).mean()
+    bb_std = copper.rolling(20).std()
+    df['bb_position'] = (copper - bb_mid) / (2 * bb_std + 1e-9)  # position within bands
+    df['bb_width'] = (2 * bb_std) / bb_mid  # band width as % of price
+
+    # ── Momentum ────────────────────────────────────────────
+    df['momentum_7'] = copper / copper.shift(7) - 1
+    df['momentum_30'] = copper / copper.shift(30) - 1
 
     # ── Target variables ─────────────────────────────────────
     forward = copper.shift(-30)
     df['return_30d'] = (forward - copper) / copper
-    df['direction_30d'] = np.select(
-        [df['return_30d'] > 0.02, df['return_30d'] < -0.02],
-        [2, 0],   # 2=up, 0=down, 1=flat (XGBoost requires 0-indexed)
-        default=1,
-    )
-    # Class mapping: 0=down, 1=flat, 2=up
+    df['direction_30d'] = (df['return_30d'] > 0).astype(int)  # 0=down, 1=up
 
     # ── China macro ──────────────────────────────────────────
     cn_pmi = _fetch_indicator("制造业PMI", start_dt)
