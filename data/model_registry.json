@@ -1,12 +1,52 @@
 {
   "copper": {
-    "last_trained": "2026-05-31T10:44:25.589015+00:00",
+    "last_trained": "2026-05-31T10:54:27.120378+00:00",
     "cv_accuracy": 0.4218,
     "baseline": 0.5691,
     "improvement": -0.1473,
     "n_samples": 2715,
     "n_features": 34,
+    "version": 2,
+    "previous_cv": 0.4218
+  },
+  "aluminum": {
+    "last_trained": "2026-05-31T10:54:30.924570+00:00",
+    "cv_accuracy": 0.5713,
+    "baseline": 0.6025,
+    "improvement": -0.0312,
+    "n_samples": 2287,
+    "n_features": 34,
     "version": 1,
     "previous_cv": 0.4218
+  },
+  "oil": {
+    "last_trained": "2026-05-31T10:54:35.538921+00:00",
+    "cv_accuracy": 0.4864,
+    "baseline": 0.5443,
+    "improvement": -0.0579,
+    "n_samples": 2719,
+    "n_features": 34,
+    "version": 1,
+    "previous_cv": 0
+  },
+  "gold": {
+    "last_trained": "2026-05-31T10:54:38.807928+00:00",
+    "cv_accuracy": 0.5049,
+    "baseline": 0.5876,
+    "improvement": -0.0827,
+    "n_samples": 2718,
+    "n_features": 34,
+    "version": 1,
+    "previous_cv": 0
+  },
+  "silver": {
+    "last_trained": "2026-05-31T10:54:42.025930+00:00",
+    "cv_accuracy": 0.4992,
+    "baseline": 0.5276,
+    "improvement": -0.0283,
+    "n_samples": 2718,
+    "n_features": 34,
+    "version": 1,
+    "previous_cv": 0
   }
 }
