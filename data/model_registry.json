@@ -1,0 +1,12 @@
+{
+  "copper": {
+    "last_trained": "2026-05-31T10:44:25.589015+00:00",
+    "cv_accuracy": 0.4218,
+    "baseline": 0.5691,
+    "improvement": -0.1473,
+    "n_samples": 2715,
+    "n_features": 34,
+    "version": 1,
+    "previous_cv": 0.4218
+  }
+}

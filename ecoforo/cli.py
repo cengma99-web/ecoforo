@@ -257,5 +257,39 @@ def report(output):
         click.echo(content)
 
 
+@cli.command()
+@click.argument("commodity", default="all")
+def retrain(commodity):
+    """Retrain prediction models. 'all' to retrain all commodities."""
+    from ecoforo.predict.auto_train import retrain_and_compare, retrain_all, get_model_status
+
+    if commodity == "all":
+        click.echo("Retraining all models...")
+        results = retrain_all()
+        for r in results:
+            if "error" in r:
+                click.echo(f"  ❌ {r['commodity']}: {r['error']}")
+            else:
+                cv_delta = r['challenger_cv'] - r['current_cv']
+                arrow = "▲" if cv_delta > 0 else ("▼" if cv_delta < 0 else "→")
+                click.echo(
+                    f"  {r['commodity']}: {r['action']} "
+                    f"CV {r['current_cv']:.1%}→{r['challenger_cv']:.1%} {arrow}"
+                )
+    else:
+        result = retrain_and_compare(commodity)
+        if "error" in result:
+            click.echo(f"Error: {result['error']}", err=True)
+        else:
+            click.echo(f"{result['name']}: {result['action']} (v{result['version']})")
+            click.echo(f"  CV: {result['current_cv']:.1%} → {result['challenger_cv']:.1%}")
+            click.echo(f"  Samples: {result['challenger_samples']}")
+
+    click.echo("")
+    click.echo("Model Registry:")
+    for s in get_model_status():
+        click.echo(f"  {s['commodity']} v{s['version']} | CV={s['cv_accuracy']:.1%} | {s['last_trained'][:19]}")
+
+
 if __name__ == "__main__":
     cli()

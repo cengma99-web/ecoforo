@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly ecoforo model retraining
+Requires=ecoforo-retrain.service
+
+[Timer]
+OnCalendar=Sun 03:00:00
+AccuracySec=5min
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
