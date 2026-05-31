@@ -179,5 +179,32 @@ def status():
         db.close()
 
 
+@cli.command()
+@click.option("--train", is_flag=True, help="Train models before predicting.")
+@click.option("--backtest", is_flag=True, help="Run backtest and show metrics.")
+def predict(train, backtest):
+    """Predict copper price direction (30-day)."""
+    from ecoforo.predict.features import build_features
+    from ecoforo.predict.train import train_models, save_models, load_models
+    from ecoforo.predict.predict import format_prediction, format_backtest, run_backtest, predict_latest
+
+    if train or backtest:
+        click.echo("Building features and training model...")
+        X, y_cls, y_reg = build_features()
+        clf, reg, metrics = train_models(X, y_cls, y_reg)
+        save_models(clf, reg, metrics)
+
+    if backtest:
+        result = run_backtest()
+        click.echo(format_backtest(result))
+    else:
+        try:
+            result = predict_latest()
+        except FileNotFoundError:
+            click.echo("No trained model found. Run with --train first.", err=True)
+            sys.exit(1)
+        click.echo(format_prediction(result))
+
+
 if __name__ == "__main__":
     cli()
