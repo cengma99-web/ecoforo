@@ -180,38 +180,67 @@ def status():
 
 
 @cli.command()
-@click.option("--train", is_flag=True, help="Train models before predicting.")
-@click.option("--backtest", is_flag=True, help="Run backtest and show metrics.")
-def predict(train, backtest):
-    """Predict copper price direction (30-day)."""
-    from ecoforo.predict.features import build_features
-    from ecoforo.predict.train import train_models, save_models, load_models
-    from ecoforo.predict.predict import format_prediction, format_backtest, run_backtest, predict_latest
-
-    if train or backtest:
-        click.echo("Building features and training model...")
-        X, y_cls, y_reg = build_features()
-        clf, reg, metrics = train_models(X, y_cls, y_reg)
-        save_models(clf, reg, metrics)
-
-    if backtest:
-        result = run_backtest()
-        click.echo(format_backtest(result))
+@click.option("--months", default=12, help="Months of history for copper analysis.")
+@click.option("--impact", is_flag=True, help="Show event impact analysis.")
+def analyze(months, impact):
+    """Run comprehensive economic analysis."""
+    if impact:
+        from ecoforo.predict.impact import analyze_event_impact
+        click.echo(analyze_event_impact())
     else:
-        try:
-            result = predict_latest()
-        except FileNotFoundError:
-            click.echo("No trained model found. Run with --train first.", err=True)
-            sys.exit(1)
-        click.echo(format_prediction(result))
+        from ecoforo.predict.analyze import run_full_analysis
+        click.echo(run_full_analysis())
 
 
 @cli.command()
-@click.option("--months", default=12, help="Months of history for copper analysis.")
-def analyze(months):
-    """Run comprehensive economic analysis."""
-    from ecoforo.predict.analyze import run_full_analysis
-    click.echo(run_full_analysis())
+@click.argument("commodity", default="copper")
+@click.option("--train", is_flag=True, help="Train model for this commodity.")
+@click.option("--backtest", is_flag=True, help="Run backtest.")
+def predict(commodity, train, backtest):
+    """Predict commodity price direction (30-day). Default: copper."""
+    from ecoforo.predict.multi_predict import (
+        COMMODITY_CONFIGS, predict_commodity, train_commodity,
+        DIRECTION_LABELS, SIGNAL_LABELS,
+    )
+
+    config = COMMODITY_CONFIGS.get(commodity)
+    if not config:
+        available = ", ".join(COMMODITY_CONFIGS.keys())
+        click.echo(f"Unknown commodity '{commodity}'. Available: {available}", err=True)
+        sys.exit(1)
+
+    if train:
+        click.echo(f"Training {config['name']} model...")
+        result = train_commodity(commodity)
+        click.echo(
+            f"  {config['name']}: CV={result['cv_accuracy']:.1%} "
+            f"(baseline {result['baseline']:.1%}, +{result['improvement']:+.1%})"
+        )
+        click.echo(f"  Samples: {result['n_samples']}, Model: {result['model_path']}")
+
+    try:
+        pred = predict_commodity(commodity)
+    except FileNotFoundError:
+        click.echo(f"No trained model for {commodity}. Run with --train first.", err=True)
+        sys.exit(1)
+
+    click.echo("═" * 50)
+    click.echo(f"{config['emoji']} {config['name']} 30日预测")
+    click.echo("═" * 50)
+    click.echo(f"当前: ${pred['current_price']:.2f}/{config['unit']}")
+    click.echo(f"信号: {pred['signal']} {pred['direction_label']}")
+    click.echo(f"预测: {pred['predicted_return_pct']:+.1f}% → ${pred['predicted_price']:.2f}/{config['unit']}")
+    probs = pred['probabilities']
+    click.echo(f"概率: 涨 {probs['up']:.0%} | 跌 {probs['down']:.0%}")
+    click.echo(f"CV准确率: {pred['cv_accuracy']:.1%}  (30日方向)")
+
+
+@cli.command()
+def classify():
+    """Classify existing GDELT news events."""
+    from ecoforo.processing.classifier import classify_events_db
+    result = classify_events_db()
+    click.echo(f"Classified {result['classified']}/{result['total']} GDELT events")
 
 
 if __name__ == "__main__":
