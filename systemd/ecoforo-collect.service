@@ -7,6 +7,8 @@ Wants=network-online.target
 Type=oneshot
 User=miqi
 ExecStart=/home/miqi/ecoforo/.venv/bin/python3 -m ecoforo.cli collect --all
+ExecStart=/home/miqi/ecoforo/.venv/bin/python3 -m ecoforo.cli classify
+ExecStart=/home/miqi/ecoforo/.venv/bin/python3 -m ecoforo.cli report --output
 WorkingDirectory=/home/miqi/ecoforo
 Environment=PYTHONPATH=/home/miqi/ecoforo
 Environment=ECOFORO_LOG_LEVEL=INFO
