@@ -1,0 +1,22 @@
+[Unit]
+Description=ecoforo economic data collection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=miqi
+ExecStart=/home/miqi/ecoforo/.venv/bin/python3 -m ecoforo.cli collect --all
+WorkingDirectory=/home/miqi/ecoforo
+Environment=PYTHONPATH=/home/miqi/ecoforo
+Environment=ECOFORO_LOG_LEVEL=INFO
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/miqi/ecoforo/data /home/miqi/ecoforo/ecoforo.db
+ReadOnlyPaths=/home/miqi/ecoforo
+
+[Install]
+WantedBy=default.target

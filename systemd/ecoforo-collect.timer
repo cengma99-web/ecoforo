@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily ecoforo economic data collection
+Requires=ecoforo-collect.service
+
+[Timer]
+OnCalendar=06:00:00
+OnCalendar=18:00:00
+AccuracySec=5min
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
