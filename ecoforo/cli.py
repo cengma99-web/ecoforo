@@ -206,5 +206,13 @@ def predict(train, backtest):
         click.echo(format_prediction(result))
 
 
+@cli.command()
+@click.option("--months", default=12, help="Months of history for copper analysis.")
+def analyze(months):
+    """Run comprehensive economic analysis."""
+    from ecoforo.predict.analyze import run_full_analysis
+    click.echo(run_full_analysis())
+
+
 if __name__ == "__main__":
     cli()
