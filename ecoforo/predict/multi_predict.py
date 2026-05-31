@@ -163,6 +163,18 @@ def build_features_for_commodity(commodity_key: str, start_date: str = "2018-01-
     df['news_high_30d'] = news_total.reindex(df.index).ffill().bfill().fillna(0) if not news_total.empty else 0
     df['news_rate_30d'] = news_rate.reindex(df.index).ffill().bfill().fillna(0) if not news_rate.empty else 0
 
+    # ── Commodity cross-features ─────────────────────────────
+    for cm_title, cm_col in [
+        ("Aluminum Futures — Close", "aluminum_30d_pct"),
+        ("Silver Futures — Close", "silver_30d_pct"),
+        ("Crude Oil WTI Futures — Close", "oil_30d_pct"),
+    ]:
+        s = ft._fetch_series(cm_title, start_dt)
+        if not s.empty:
+            df[cm_col] = s.pct_change(30).reindex(df.index).ffill().bfill()
+        else:
+            df[cm_col] = 0.0
+
     # Clean
     feature_cols = [c for c in ft.ALL_FEATURES if c in df.columns]
     df_clean = df.dropna(subset=feature_cols + ['direction_30d', 'return_30d'])

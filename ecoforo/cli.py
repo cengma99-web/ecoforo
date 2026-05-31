@@ -243,5 +243,19 @@ def classify():
     click.echo(f"Classified {result['classified']}/{result['total']} GDELT events")
 
 
+@cli.command()
+@click.option("--output", "-o", is_flag=True, help="Save to file instead of printing.")
+def report(output):
+    """Generate daily economic brief."""
+    from ecoforo.report import generate_daily_report, save_report
+
+    content = generate_daily_report()
+    if output:
+        path = save_report(content)
+        click.echo(f"Report saved: {path}")
+    else:
+        click.echo(content)
+
+
 if __name__ == "__main__":
     cli()
